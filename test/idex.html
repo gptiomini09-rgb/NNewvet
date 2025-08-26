@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>НьюВет – Ветеринарные препараты</title>
+  <meta name="description" content="Современные ветеринарные препараты для Беларуси и России. Качественные решения от НьюВет." />
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐾</text></svg>">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Swiper JS для карусели -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.css" />
+  
+  <!-- intl-tel-input CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@17/build/css/intlTelInput.min.css" />
+
+  <style>
+    .card-hover {
+      transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    }
+    .card-hover:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal.active {
+      display: flex;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    .modal-content {
+      background: white;
+      padding: 2rem;
+      border-radius: 1rem;
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      transform: scale(0.7);
+      animation: popIn 0.3s forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes popIn {
+      to { transform: scale(1); }
+    }
+    .modal-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.5rem;
+      margin: 0 auto;
+      display: block;
+    }
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      font-size: 1.5rem;
+      cursor: pointer;
+      background: none;
+      border: none;
+      z-index: 1001;
+    }
+    .modal-close:hover {
+      color: red;
+    }
+    .iti {
+      width: 100%;
+    }
+    .loading {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+      margin-left: 10px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .nav-hidden {
+      display: none;
+    }
+    @media (min-width: 768px) {
+      .nav-hidden {
+        display: flex;
+      }
+      .burger-menu {
+        display: none;
+      }
+    }
+    .validation-message {
+      color: red;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+      display: none;
+    }
+    /* Стили для карусели */
+    .swiper {
+      width: 100%;
+      padding: 30px 10px 50px;
+    }
+    .swiper-slide {
+      display: flex;
+      justify-content: center;
+      height: auto;
+    }
+    .swiper-pagination-bullet-active {
+      background-color: #1d4ed8 !important;
+    }
+    .swiper-button-next, .swiper-button-prev {
+      color: #1d4ed8 !important;
+    }
+    /* Стили для Toast уведомления */
+    #toast {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      padding: 1rem 1.5rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      transform: translateY(8rem);
+      transition: all 0.3s ease-in-out;
+      opacity: 0;
+      z-index: 1100;
+    }
+    #toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    /* Стили для honeypot поля */
+    .hp-field {
+      position: absolute;
+      left: -9999px;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans font-sans-serif">
+
+  <!-- Header -->
+  <header class="bg-white shadow-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto flex justify-between items-center p-4">
+      <div class="text-3xl font-bold text-blue-700">НьюВет</div>
+      <button class="burger-menu md:hidden text-blue-700 text-2xl" aria-label="Открыть меню">☰</button>
+      <nav class="nav-hidden space-x-4">
+        <a href="#about" class="text-blue-700 hover:text-blue-900 transition">О компании</a>
+        <a href="#catalog" class="text-blue-700 hover:text-blue-900 transition">Продукты</a>
+        <a href="#contact" class="text-blue-700 hover:text-blue-900 transition">Контакты</a>
+        <button id="openModalHeader" class="bg-yellow-400 text-blue-900 font-semibold px-4 py-2 rounded-xl hover:bg-yellow-300 transition">Оставить заявку</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Screen -->
+  <section class="bg-blue-700 text-white py-28 text-center relative overflow-hidden">
+    <h1 class="text-5xl font-extrabold mb-6">Современные ветеринарные решения</h1>
+    <p class="text-lg mb-8 max-w-xl mx-auto">Для Беларуси и России. Качественные препараты и экспертная поддержка.</p>
+    <button id="openModalHero" class="bg-yellow-400 text-blue-900 font-semibold px-8 py-4 rounded-3xl hover:bg-yellow-300 transition transform hover:scale-105 shadow-lg">Оставить заявку</button>
+    <div class="absolute top-0 right-0 w-32 h-32 bg-yellow-300 opacity-30 rounded-full -translate-x-1/3 -translate-y-1/3"></div>
+    <div class="absolute bottom-0 left-0 w-48 h-48 bg-yellow-300 opacity-30 rounded-full translate-x-1/4 translate-y-1/4"></div>
+  </section>
+
+  <!-- About -->
+  <section id="about" class="max-w-6xl mx-auto py-16 px-4 text-center">
+    <h2 class="text-3xl font-bold text-blue-700 mb-8">О компании</h2>
+    <p class="text-lg text-gray-800 max-w-3xl mx-auto">НьюВет – динамичная компания, поставляющая современные ветеринарные препараты. Качество, скорость доставки и экспертная поддержка – наши приоритеты.</p>
+  </section>
+
+  <!-- Catalog -->
+  <section id="catalog" class="max-w-6xl mx-auto py-16 px-4">
+    <h2 class="text-3xl font-bold text-blue-700 mb-10 text-center">Каталог продукции</h2>
+    
+    <!-- Карусель препаратов -->
+    <div class="swiper mySwiper">
+      <div class="swiper-wrapper">
+        <!-- Слайд 1 -->
+        <div class="swiper-slide">
+          <div class="bg-white rounded-3xl shadow-lg p-6 card-hover text-center relative h-full">
+            <img src="images/avarilin.jpg" alt="Аварилин" class="mb-4 rounded-xl mx-auto h-48 object-cover" loading="lazy" />
+            <h3 class="text-xl font-bold text-blue-700 mb-2">Аварилин</h3>
+            <p class="text-gray-700 mb-4">Гормональный препарат для синхронизации охоты и повышения репродуктивности КРС.</p>
+            <button class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-600 transition" data-product-id="avarilin">Подробнее</button>
+          </div>
+        </div>
+        
+        <!-- Слайд 2 -->
+        <div class="swiper-slide">
+          <div class="bg-white rounded-3xl shadow-lg p-6 card-hover text-center relative h-full">
+            <img src="images/enzoprost.jpg" alt="Энзопрост-Т" class="mb-4 rounded-xl mx-auto h-48 object-cover" loading="lazy" />
+            <h3 class="text-xl font-bold text-blue-700 mb-2">Энзопрост-Т</h3>
+            <p class="text-gray-700 mb-4">Простагландиновый препарат для синхронизации и лечения гинекологических патологий.</p>
+            <button class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-600 transition" data-product-id="enzoprost">Подробнее</button>
+          </div>
+        </div>
+        
+        <!-- Слайд 3 -->
+        <div class="swiper-slide">
+          <div class="bg-white rounded-3xl shadow-lg p-6 card-hover text-center relative h-full">
+            <img src="images/pridelta.jpg" alt="Придельта" class="mb-4 rounded-xl mx-auto h-48 object-cover" loading="lazy" />
+            <h3 class="text-xl font-bold text-blue-700 mb-2">Придельта</h3>
+            <p class="text-gray-700 mb-4">Препарат для улучшения репродуктивных показателей и профилактики патологий.</p>
+            <button class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-600 transition" data-product-id="pridelta">Подробнее</button>
+          </div>
+        </div>
+        
+        <!-- Слайд 4 - пример дополнительного препарата -->
+        <div class="swiper-slide">
+          <div class="bg-white rounded-3xl shadow-lg p-6 card-hover text-center relative h-full">
+            <img src="https://via.placeholder.com/300x200?text=Новый+препарат" alt="Новый препарат" class="mb-4 rounded-xl mx-auto h-48 object-cover" loading="lazy" />
+            <h3 class="text-xl font-bold text-blue-700 mb-2">Ветомицин</h3>
+            <p class="text-gray-700 mb-4">Антибактериальный препарат широкого спектра действия для лечения инфекций.</p>
+            <button class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-600 transition" data-product-id="vetomicin">Подробнее</button>
+          </div>
+        </div>
+        
+        <!-- Слайд 5 - пример дополнительного препарата -->
+        <div class="swiper-slide">
+          <div class="bg-white rounded-3xl shadow-lg p-6 card-hover text-center relative h-full">
+            <img src="https://via.placeholder.com/300x200?text=Еще+один" alt="Еще один препарат" class="mb-4 rounded-xl mx-auto h-48 object-cover" loading="lazy" />
+            <h3 class="text-xl font-bold text-blue-700 mb-2">Иммуновет</h3>
+            <p class="text-gray-700 mb-4">Иммуномодулятор для повышения сопротивляемости организма животных.</p>
+            <button class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-600 transition" data-product-id="immunovet">Подробнее</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Навигация карусели -->
+      <div class="swiper-pagination"></div>
+      <div class="swiper-button-next"></div>
+      <div class="swiper-button-prev"></div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact" class="bg-blue-50 py-16 px-4 text-center">
+    <h2 class="text-3xl font-bold text-blue-700 mb-8">Свяжитесь с нами</h2>
+    <p class="mb-2">Телефон: <a href="tel:+375336509525" class="text-blue-700 font-semibold">+375 (33) 650-95-25</a></p>
+    <p class="mb-2">E-mail: <a href="mailto:newvet23@mail.ru" class="text-blue-700 font-semibold">newvet23@mail.ru</a></p>
+    <p class="mb-6">Telegram/WhatsApp: +375 (33) 650-95-25</p>
+    <button class="openModal bg-yellow-400 text-blue-900 font-semibold px-8 py-3 rounded-3xl hover:bg-yellow-300 transition transform hover:scale-105 shadow-lg">Оставить заявку</button>
+  </section>
+
+  <!-- Contact Modal -->
+  <div id="modal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="modalTitle">
+    <div class="modal-content">
+      <button id="closeModal" class="modal-close" aria-label="Закрыть окно">×</button>
+      <h3 id="modalTitle" class="text-2xl font-bold mb-4 text-blue-700">Оставить заявку</h3>
+      <p class="mb-4">Пожалуйста, заполните форму и мы свяжемся с вами.</p>
+      <form id="requestForm" method="POST" class="flex flex-col gap-4">
+        <!-- Honeypot поле для защиты от ботов -->
+        <input type="checkbox" name="botcheck" class="hp-field" autocomplete="off">
+        
+        <div>
+          <input type="text" placeholder="Ваше имя" class="border p-2 rounded w-full" required aria-label="Имя" />
+        </div>
+        <div>
+          <input type="email" placeholder="Email" class="border p-2 rounded w-full" required aria-label="Email" />
+        </div>
+        <div>
+          <input id="phone" type="tel" class="border p-2 rounded w-full" placeholder="+7 (123) 456-78-90" required aria-label="Телефон" />
+          <p class="text-sm text-gray-600 mt-1">Укажите номер для Беларуси или России</p>
+          <div id="phone-validation" class="validation-message">Пожалуйста, введите корректный номер телефона</div>
+        </div>
+        <div>
+          <textarea placeholder="Сообщение" class="border p-2 rounded w-full" aria-label="Сообщение"></textarea>
+        </div>
+        <button type="submit" class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-600 transition flex items-center justify-center">
+          <span id="submit-text">Отправить</span>
+          <div id="loading" class="loading"></div>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Product Modals -->
+  <div id="product-modal-avarilin" class="modal" aria-hidden="true" role="dialog" aria-labelledby="avarilinTitle">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeProductModal('avarilin')" aria-label="Закрыть окно">×</button>
+      <img src="images/avarilin.jpg" alt="Аварилин" class="mb-4 h-48 object-cover mx-auto" />
+      <h3 id="avarilinTitle" class="text-2xl font-bold text-blue-700 mb-2">Аварилин</h3>
+      <p class="text-gray-700 mb-4">Гормональный препарат для синхронизации охоты и повышения репродуктивности КРС.</p>
+      <p><strong>Состав:</strong> Содержит гонадотропин-рилизинг-гормон (GnRH).</p>
+      <p><strong>Дозировка:</strong> 2.5 мл внутримышечно для коров, повтор через 10-12 дней.</p>
+      <p><strong>Применение:</strong> Используется для синхронизации эструса и повышения репродуктивных показателей КРС.</p>
+    </div>
+  </div>
+  
+  <div id="product-modal-enzoprost" class="modal" aria-hidden="true" role="dialog" aria-labelledby="enzoprostTitle">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeProductModal('enzoprost')" aria-label="Закрыть окно">×</button>
+      <img src="images/enzoprost.jpg" alt="Энзопрост-Т" class="mb-4 h-48 object-cover mx-auto" />
+      <h3 id="enzoprostTitle" class="text-2xl font-bold text-blue-700 mb-2">Энзопрост-Т</h3>
+      <p class="text-gray-700 mb-4">Простагландиновый препарат для синхронизации и лечения гинекологических патологий.</p>
+      <p><strong>Состав:</strong> Динапрост (аналог простагландина F2α).</p>
+      <p><strong>Дозировка:</strong> 2 мл внутримышечно для коров, 1 мл для овец.</p>
+      <p><strong>Применение:</strong> Лечение эндометритов, синхронизация охоты.</p>
+    </div>
+  </div>
+  
+  <div id="product-modal-pridelta" class="modal" aria-hidden="true" role="dialog" aria-labelledby="prideltaTitle">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeProductModal('pridelta')" aria-label="Закрыть окно">×</button>
+      <img src="images/pridelta.jpg" alt="Придельта" class="mb-4 h-48 object-cover mx-auto" />
+      <h3 id="prideltaTitle" class="text-2xl font-bold text-blue-700 mb-2">Придельта</h3>
+      <p class="text-gray-700 mb-4">Препарат для улучшения репродуктивных показателей и профилактики патологий.</p>
+      <p><strong>Состав:</strong> Содержит прогестерон и эстрадиол.</p>
+      <p><strong>Дозировка:</strong> 1.5-2 мл внутримышечно, курс 5-7 дней.</p>
+      <p><strong>Применение:</strong> Профилактика абортов, улучшение оплодотворяемости.</p>
+    </div>
+  </div>
+
+  <!-- Toast уведомление -->
+  <div id="toast" class="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg transform translate-y-full transition-transform duration-300 opacity-0">
+      <span id="toast-message">Спасибо! Ваша заявка отправлена.</span>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white shadow-inner py-6 text-center text-gray-600 text-sm">
+    &copy; 2025 НьюВет. Все права защищены.
+  </footer>
+
+  <!-- Swiper JS -->
+  <script src="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.js"></script>
+  
+  <!-- intl-tel-input JS -->
+  <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@17/build/js/intlTelInput.min.js"></script>
+
+  <script>
+    // Инициализация Swiper карусели
+    const initSwiper = () => {
+      const swiper = new Swiper(".mySwiper", {
+        slidesPerView: 1,
+        spaceBetween: 20,
+        loop: true,
+        pagination: {
+          el: ".swiper-pagination",
+          clickable: true,
+        },
+        navigation: {
+          nextEl: ".swiper-button-next",
+          prevEl: ".swiper-button-prev",
+        },
+        breakpoints: {
+          640: {
+            slidesPerView: 2,
+          },
+          1024: {
+            slidesPerView: 3,
+          },
+        },
+      });
+    };
+    
+    // Инициализация элементов
+    const phoneInput = document.querySelector("#phone");
+    let iti;
+    
+    // Мобильное меню
+    const burgerMenu = document.querySelector('.burger-menu');
+    const navMenu = document.querySelector('nav');
+    burgerMenu.addEventListener('click', () => {
+      navMenu.classList.toggle('nav-hidden');
+    });
+    
+    // Универсальные функции для модальных окон
+    let activeModal = null;
+    let focusableElements = [];
+    let previouslyFocusedElement = null;
+    
+    function openModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      
+      // Сохраняем элемент, который был в фокусе
+      previouslyFocusedElement = document.activeElement;
+      
+      // Показываем модальное окно
+      modal.classList.add('active');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      activeModal = modal;
+      
+      // Находим все фокусируемые элементы внутри модального окна
+      focusableElements = Array.from(modal.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )).filter(el => !el.disabled && el.getAttribute('tabindex') !== '-1');
+      
+      // Фокусируемся на первом элементе
+      if (focusableElements.length > 0) {
+        focusableElements[0].focus();
+      }
+      
+      // Добавляем обработчики для клавиатуры
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    
+    function closeModal() {
+      if (!activeModal) return;
+      
+      // Скрываем модальное окно
+      activeModal.classList.remove('active');
+      activeModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      
+      // Возвращаем фокус на предыдущий элемент
+      if (previouslyFocusedElement) {
+        previouslyFocusedElement.focus();
+      }
+      
+      // Удаляем обработчики клавиатуры
+      document.removeEventListener('keydown', handleKeyDown);
+      
+      activeModal = null;
+      focusableElements = [];
+    }
+    
+    function handleKeyDown(e) {
+      if (!activeModal) return;
+      
+      // Закрытие по Escape
+      if (e.key === 'Escape') {
+        closeModal();
+        return;
+      }
+      
+      // Ловушка фокуса внутри модального окна при нажатии Tab
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        
+        if (focusableElements.length === 0) return;
+        
+        const currentIndex = focusableElements.indexOf(document.activeElement);
+        let nextIndex = 0;
+        
+        if (currentIndex >= 0) {
+          nextIndex = e.shiftKey ? 
+            (currentIndex - 1 + focusableElements.length) % focusableElements.length :
+            (currentIndex + 1) % focusableElements.length;
+        }
+        
+        focusableElements[nextIndex].focus();
+      }
+    }
+    
+    // Обработчики для модальных окон
+    document.querySelectorAll('.openModal, #openModalHero, #openModalHeader').forEach(btn => {
+      btn.addEventListener('click', () => openModal('modal'));
+    });
+    
+    document.getElementById('closeModal').addEventListener('click', closeModal);
+    
+    document.getElementById('modal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+    
+    // Функции для модальных окон продуктов
+    function openProductModal(modalId) {
+      openModal(modalId);
+    }
+    
+    function closeProductModal(productId) {
+      closeModal();
+    }
+    
+    // Показать Toast уведомление
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toast-message');
+      
+      toastMessage.textContent = message;
+      // Изменяем цвет в зависимости от типа уведомления
+      toast.className = `fixed bottom-4 right-4 px-6 py-4 rounded-lg shadow-lg transform translate-y-full transition-transform duration-300 opacity-0 ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
+      
+      // Показываем toast
+      setTimeout(() => toast.classList.add('show'), 100);
+      
+      // Прячем toast через 5 секунд
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 5000);
+    }
+    
+    // Инициализация после загрузки DOM
+    document.addEventListener('DOMContentLoaded', function() {
+      // Инициализация карусели
+      initSwiper();
+      
+      // Инициализация телефона
+      iti = window.intlTelInput(phoneInput, {
+        initialCountry: "ru",
+        preferredCountries: ["ru", "by", "ua"],
+        separateDialCode: true,
+        utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@17/build/js/utils.js",
+      });
+      
+      // Валидация телефона при вводе
+      phoneInput.addEventListener('blur', validatePhone);
+      phoneInput.addEventListener('input', () => {
+        document.getElementById('phone-validation').style.display = 'none';
+      });
+      
+      // Обработка кликов на кнопки продуктов через делегирование событий
+      document.getElementById('catalog').addEventListener('click', function(e) {
+        if (e.target.matches('[data-product-id]')) {
+          const productId = e.target.getAttribute('data-product-id');
+          openProductModal('product-modal-' + productId);
+        }
+      });
+    });
+    
+    function validatePhone() {
+      const validationMessage = document.getElementById('phone-validation');
+      if (!iti.isValidNumber()) {
+        validationMessage.style.display = 'block';
+        return false;
+      }
+      validationMessage.style.display = 'none';
+      return true;
+    }
+    
+    // Обработка формы
+    document.getElementById('requestForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      // Проверка honeypot поля на ботов
+      const botCheck = this.elements['botcheck'].checked;
+      if (botCheck) {
+        showToast('Обнаружена подозрительная активность.', 'error');
+        return false;
+      }
+      
+      // Валидация
+      if (!validatePhone()) {
+        phoneInput.focus();
+        return false;
+      }
+      
+      // Показать индикатор загрузки
+      const submitText = document.getElementById('submit-text');
+      const loading = document.getElementById('loading');
+      submitText.textContent = 'Отправляем...';
+      loading.style.display = 'inline-block';
+      
+      // Получить данные из формы
+      const formData = new FormData(this);
+      const phoneNumber = iti.getNumber();
+      formData.append('phone', phoneNumber);
+      
+      try {
+        // В реальном приложении здесь был бы fetch запрос к серверу
+        // await fetch('/submit-form', { method: 'POST', body: formData });
+        
+        // Имитация задержки сети
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Сообщение об успехе через Toast
+        showToast("Спасибо! Ваша заявка отправлена.");
+        closeModal();
+        this.reset();
+        iti.setCountry("ru");
+      } catch (error) {
+        showToast("Произошла ошибка. Пожалуйста, попробуйте еще раз.", "error");
+        console.error('Form submission error:', error);
+      } finally {
+        // Скрыть индикатор загрузки
+        submitText.textContent = 'Отправить';
+        loading.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
